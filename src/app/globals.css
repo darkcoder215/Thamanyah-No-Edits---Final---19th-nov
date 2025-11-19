@@ -1,0 +1,211 @@
+@layer theme, base, antd, components, utilities;
+
+@import "tailwindcss";
+
+@theme {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+
+	--color-green-full: var(--full-green);
+	--color-green-light: var(--light-green);
+}
+
+:root {
+	--background: #f2eee4;
+	--foreground: #171717;
+	--full-green: #54b974;
+	--light-green: #afe4b6;
+	--full-purple: #b37feb;
+}
+
+.dark {
+	--background: #0a0a0a;
+	--foreground: #f2eee4;
+}
+
+body {
+	color: var(--foreground);
+	background: var(--background);
+	font-family: Arial, Helvetica, sans-serif;
+	color-adjust: exact;
+	-webkit-print-color-adjust: exact;
+}
+
+/* move required mark after label  */
+label.eight-form-item-required::before {
+	position: absolute;
+	left: 2px;
+}
+
+.page {
+	@apply mx-auto border-0;
+	size: A4;
+	height: 297mm;
+	width: 210mm;
+	--background: #f2eee4;
+	--foreground: #171717;
+	border-top: 18px solid var(--full-green);
+	background: var(--background);
+	color: var(--foreground);
+	padding-top: 120px;
+	padding-bottom: 120px;
+	padding-inline: 42px;
+	margin-bottom: 1rem;
+	overflow-y: hidden;
+	position: relative;
+}
+
+.page-2 {
+	@apply mx-auto border-0;
+	size: A4;
+	height: 297mm;
+	width: 210mm;
+	--background: #f2eee4;
+	--foreground: #171717;
+	background-color: var(--background);
+	color: var(--foreground);
+	padding-top: 175px;
+	padding-bottom: 175px;
+	padding-inline-start: 44px;
+	padding-inline-end: 33px;
+	margin-bottom: 1rem;
+	overflow-y: hidden;
+	position: relative;
+}
+
+@media print {
+	.hide-print {
+		display: none !important;
+	}
+
+	.page-2,
+	.page {
+		/* size: landscape; */
+		outline: 1px solid #000;
+		border: 0;
+		--background: #f2eee4;
+		--foreground: #171717;
+		/* background-color: #f2eee4 !important; */
+		/* color: #000 !important; */
+		-webkit-print-color-adjust: exact;
+		margin: 0;
+	}
+
+	.p-5,
+	.p-10 {
+		padding: 0 !important;
+	}
+
+	@page {
+		/* size: landscape; */
+		size: A4;
+		border: 0;
+		/* --background: #f2eee4;
+		--foreground: #171717; */
+		-webkit-print-color-adjust: exact;
+		margin: 0;
+	}
+}
+
+.styled-font {
+	font-feature-settings: "ss01" 1;
+}
+
+.font-8-sans,
+.font-8-display,
+.font-8-serif {
+	strong {
+		@apply font-medium;
+	}
+}
+
+.font-8-sans {
+	font-family: var(--thmanyah-sans);
+}
+
+.font-8-display {
+	font-family: var(--thmanyah-display);
+}
+
+.font-8-serif {
+	font-family: var(--thmanyah-serif);
+}
+
+.selected-row td {
+	border: none !important;
+	font-weight: 600;
+}
+
+.selected-row td:first-child {
+	border-right: 2px solid var(--full-purple) !important;
+	border-top: 2px solid var(--full-purple) !important;
+	border-bottom: 2px solid var(--full-purple) !important;
+}
+
+.selected-row td:last-child {
+	border-left: 2px solid var(--full-purple) !important;
+	border-top: 2px solid var(--full-purple) !important;
+	border-bottom: 2px solid var(--full-purple) !important;
+}
+
+.selected-row td:not(:first-child):not(:last-child) {
+	border-top: 2px solid var(--full-purple) !important;
+	border-bottom: 2px solid var(--full-purple) !important;
+}
+
+.selected-cell {
+	border: 2px solid var(--full-purple) !important;
+}
+
+.hide-print {
+	--foreground: #000;
+	--background: #fff;
+}
+
+body:has(.theme-league) {
+	--background: #000;
+	--foreground: #fff;
+}
+
+.theme-league .page {
+	--foreground: #fff;
+	--color-black: #fff;
+	--color-green-light: rgba(255, 255, 255, 0.08);
+	border: 0 !important;
+}
+
+.theme-league .page:nth-child(odd) {
+	--background: linear-gradient(to bottom, #000000, #003f24) !important;
+}
+
+.theme-league .page:nth-child(even) {
+	--background: linear-gradient(to top, #000000, #003f24) !important;
+}
+
+.theme-league .outro {
+	background: url("/icons/league-bg.png") center center / cover no-repeat !important;
+	color: red;
+}
+
+.theme-league .page:not(.no-corners)::before,
+.theme-league .page:not(.no-corners)::after {
+	content: "";
+	position: absolute;
+	width: 45px;
+	height: 45px;
+	background-image: url("/icons/frame-white.svg");
+	background-position: center center;
+	background-repeat: no-repeat;
+
+	background-size: 70px;
+	top: 42px;
+}
+
+.theme-league .page::before {
+	right: 42px;
+	rotate: 90deg;
+}
+
+.theme-league .page::after {
+	left: 42px;
+}
