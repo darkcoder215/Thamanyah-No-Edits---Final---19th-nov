@@ -241,14 +241,14 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 		}
 		body {
 			margin: 0;
-			padding: 20px;
-			display: flex;
-			justify-content: center;
-			align-items: flex-start;
-			min-height: 100vh;
+			padding: 0;
 			background: #f5f5f5;
 		}
 		#preview-container {
+			/* Don't interfere with absolute positioning */
+			position: relative;
+			display: inline-block;
+			margin: 20px;
 			background: white;
 			box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 		}
