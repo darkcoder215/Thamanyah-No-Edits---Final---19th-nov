@@ -83,30 +83,21 @@ export const validateJSX = (jsx: string): void => {
 		throw new FigmaConverterError("JSX code is required", ErrorCode.INVALID_JSX)
 	}
 
-	// Check for common Figma export errors
-	// 1. Detect style="..." instead of style={{...}}
-	const invalidStyleMatch = jsx.match(/<\w+[^>]*style="[^"]*"/)
-	if (invalidStyleMatch) {
+	// Basic validation only - AI will handle syntax cleanup
+	// Just check that it looks like HTML/JSX structure
+	const hasOpeningTags = /<\w+[^>]*>/g.test(jsx)
+
+	if (!hasOpeningTags) {
 		throw new FigmaConverterError(
-			'Invalid JSX: Found style="..." which should be style={{...}}. Figma exports use quotes instead of curly braces.',
+			"Input doesn't appear to contain valid HTML/JSX markup",
 			ErrorCode.INVALID_JSX,
 		)
 	}
 
-	// 2. Count tags properly (excluding self-closing tags)
-	const allOpenTags = jsx.match(/<(\w+)[^/>]*>/g) || []
-	const selfClosingTags = jsx.match(/<\w+[^>]*\/>/g) || []
-	const closeTags = jsx.match(/<\/\w+>/g) || []
-
-	const openTagsCount = allOpenTags.length - selfClosingTags.length
-	const closeTagsCount = closeTags.length
-
-	if (openTagsCount !== closeTagsCount) {
-		throw new FigmaConverterError(
-			`JSX has mismatched tags: ${openTagsCount} opening tags but ${closeTagsCount} closing tags`,
-			ErrorCode.INVALID_JSX,
-		)
-	}
+	// That's it! The AI is smart enough to handle:
+	// - Figma's style="..." syntax → will convert to Tailwind
+	// - Mismatched tags → will fix structure
+	// - Invalid JSX → will clean up and make valid
 }
 
 export const validateImage = (file: File): void => {
