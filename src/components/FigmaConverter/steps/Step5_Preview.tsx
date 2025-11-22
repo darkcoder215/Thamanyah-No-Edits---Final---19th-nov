@@ -50,17 +50,42 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 		try {
 			let previewHTML = jsx
 
-			// Replace field markers with form data
+			console.log("[Step5] Starting getPreviewHTML - original JSX length:", jsx.length)
+
+			// EDGE CASE 1: Strip component wrapper if AI still included it
+			// Check for patterns like: const ComponentName = () => { return ( ... ); };
+			const componentWrapperPattern =
+				/const\s+\w+\s*=\s*\(\)\s*=>\s*\{[\s\n]*return\s*\(([\s\S]*)\);?[\s\n]*\};?/
+			if (componentWrapperPattern.test(previewHTML)) {
+				console.warn("[Step5] DETECTED COMPONENT WRAPPER - Stripping it out")
+				const match = previewHTML.match(componentWrapperPattern)
+				if (match && match[1]) {
+					previewHTML = match[1].trim()
+					console.log("[Step5] Stripped wrapper, new JSX length:", previewHTML.length)
+				}
+			}
+
+			// EDGE CASE 2: Strip export statements
+			previewHTML = previewHTML.replace(/export\s+default\s+\w+;?/g, "").trim()
+
+			// EDGE CASE 3: Replace field markers with form data
+			console.log(`[Step5] Replacing ${fields.length} field markers`)
 			fields.forEach((field) => {
 				const value = formData[field.name] || field.defaultValue || field.placeholder || ""
 				const marker = `data-field="${field.name}"`
 				const regex = new RegExp(`<([^>]+)${marker}([^>]*)>([^<]*)</\\1>`, "g")
+				const beforeReplace = previewHTML
 				previewHTML = previewHTML.replace(regex, `<$1$2>${value}</$1>`)
+				if (beforeReplace !== previewHTML) {
+					console.log(`[Step5] Replaced field: ${field.name} with value: ${value}`)
+				}
 			})
 
+			console.log("[Step5] getPreviewHTML complete - final length:", previewHTML.length)
 			return previewHTML
 		} catch (error) {
-			console.error("[Step5] Error generating preview HTML:", error)
+			console.error("[Step5] CRITICAL ERROR in getPreviewHTML:", error)
+			console.error("[Step5] Error stack:", error instanceof Error ? error.stack : "No stack")
 			return ""
 		}
 	}
@@ -88,12 +113,25 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 		}
 
 		try {
+			console.log("[Step5] ========== STARTING IFRAME RENDER ==========")
 			let previewHTML = getPreviewHTML()
 
+			// VALIDATION 1: Check if HTML is empty
 			if (!previewHTML || previewHTML.trim().length === 0) {
-				console.error("[Step5] Preview HTML is empty!")
+				console.error("[Step5] VALIDATION FAILED: Preview HTML is empty!")
+				console.error("[Step5] Original JSX length:", jsx.length)
+				console.error("[Step5] Original JSX sample:", jsx.substring(0, 300))
 				return
 			}
+			console.log("[Step5] ✓ Validation passed: HTML is not empty")
+
+			// VALIDATION 2: Check if it looks like valid HTML/JSX
+			if (!previewHTML.includes("<div") && !previewHTML.includes("<span")) {
+				console.error("[Step5] VALIDATION FAILED: No HTML elements found!")
+				console.error("[Step5] Preview HTML:", previewHTML.substring(0, 500))
+				return
+			}
+			console.log("[Step5] ✓ Validation passed: Contains HTML elements")
 
 			console.log("[Step5] Preview HTML length:", previewHTML.length)
 			console.log(
@@ -101,16 +139,24 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 				previewHTML.substring(0, 200),
 			)
 
-			// CRITICAL FIX: Convert JSX syntax to HTML syntax
+			// TRANSFORMATION 1: Convert JSX syntax to HTML syntax
 			// React uses "className", but HTML iframes need "class"
+			const classNameCount = (previewHTML.match(/className=/g) || []).length
+			console.log(`[Step5] Found ${classNameCount} instances of 'className' to convert`)
 			previewHTML = previewHTML.replace(/className=/g, "class=")
+
+			// TRANSFORMATION 2: Handle any remaining JSX artifacts
+			// Convert self-closing tags that might have /> without space
+			previewHTML = previewHTML.replace(/(\w)\/>/g, "$1 />")
 
 			console.log(
 				"[Step5] Preview HTML sample (after transform):",
 				previewHTML.substring(0, 200),
 			)
+			console.log("[Step5] ✓ Transformations complete")
 
 			// Create complete HTML document with Tailwind CDN
+			console.log("[Step5] Building iframe HTML document...")
 			const htmlContent = `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -121,24 +167,72 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 	<!-- Tailwind CDN with all features enabled -->
 	<script src="https://cdn.tailwindcss.com"></script>
 	<script>
-		// Configure Tailwind
+		// Tailwind Configuration
 		tailwind.config = {
 			theme: {
 				extend: {}
 			}
 		}
 
-		// Debug logging
-		console.log('[Iframe] Tailwind CDN loaded')
-		window.addEventListener('load', () => {
-			console.log('[Iframe] Page fully loaded')
-			console.log('[Iframe] Preview container:', document.getElementById('preview-container'))
-		})
+		// COMPREHENSIVE ERROR & DEBUG LOGGING
+		let tailwindLoaded = false;
+		let domReady = false;
 
-		// Error handling
+		// Check if Tailwind loaded
+		if (typeof tailwind !== 'undefined') {
+			console.log('[Iframe] ✓ Tailwind CDN script loaded successfully');
+			tailwindLoaded = true;
+		} else {
+			console.error('[Iframe] ✗ CRITICAL: Tailwind CDN failed to load!');
+		}
+
+		// DOM ready check
+		window.addEventListener('DOMContentLoaded', () => {
+			domReady = true;
+			console.log('[Iframe] ✓ DOM Content Loaded');
+
+			const container = document.getElementById('preview-container');
+			if (container) {
+				console.log('[Iframe] ✓ Preview container found');
+				console.log('[Iframe] Container children count:', container.children.length);
+				console.log('[Iframe] Container HTML sample:', container.innerHTML.substring(0, 200));
+			} else {
+				console.error('[Iframe] ✗ Preview container NOT found!');
+			}
+		});
+
+		// Full page load check
+		window.addEventListener('load', () => {
+			console.log('[Iframe] ✓ Page fully loaded');
+			console.log('[Iframe] Status - Tailwind:', tailwindLoaded, 'DOM:', domReady);
+
+			// Verify styles are applied
+			const firstDiv = document.querySelector('#preview-container > div');
+			if (firstDiv) {
+				const computed = window.getComputedStyle(firstDiv);
+				console.log('[Iframe] First div computed styles:');
+				console.log('[Iframe]   - width:', computed.width);
+				console.log('[Iframe]   - height:', computed.height);
+				console.log('[Iframe]   - position:', computed.position);
+				console.log('[Iframe]   - background:', computed.backgroundColor);
+			}
+		});
+
+		// Catch all errors
 		window.addEventListener('error', (e) => {
-			console.error('[Iframe] Error:', e.error || e.message)
-		})
+			console.error('[Iframe] ✗ ERROR:', e.error || e.message);
+			console.error('[Iframe] Error details:', {
+				message: e.message,
+				filename: e.filename,
+				lineno: e.lineno,
+				colno: e.colno
+			});
+		});
+
+		// Unhandled promise rejections
+		window.addEventListener('unhandledrejection', (e) => {
+			console.error('[Iframe] ✗ UNHANDLED PROMISE REJECTION:', e.reason);
+		});
 	</script>
 	<style>
 		* {
@@ -164,38 +258,99 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 	<div id="preview-container">
 		${previewHTML}
 	</div>
-	<script>
-		// Log after DOM is ready
-		console.log('[Iframe] DOM loaded, container HTML:', document.getElementById('preview-container')?.innerHTML?.substring(0, 200))
-	</script>
 </body>
 </html>
 			`
 
-			// Write to iframe
-			iframeDoc.open()
-			iframeDoc.write(htmlContent)
-			iframeDoc.close()
+			console.log("[Step5] ✓ HTML document built, length:", htmlContent.length)
 
-			console.log("[Step5] Iframe updated successfully")
+			// Write to iframe with error handling
+			console.log("[Step5] Writing HTML to iframe...")
+			try {
+				iframeDoc.open()
+				iframeDoc.write(htmlContent)
+				iframeDoc.close()
+				console.log("[Step5] ✓ Iframe document written and closed successfully")
+			} catch (writeError) {
+				console.error("[Step5] ✗ CRITICAL: Failed to write to iframe!", writeError)
+				console.error(
+					"[Step5] Write error stack:",
+					writeError instanceof Error ? writeError.stack : "No stack",
+				)
+				throw writeError
+			}
 
 			// Mark iframe as ready after content is written
 			setIframeReady(true)
+			console.log("[Step5] ✓ Iframe marked as ready, loading overlay will hide")
 
-			// Wait for iframe to load, then check if Tailwind processed
+			// VERIFICATION: Wait for iframe to load, then verify Tailwind processed
+			console.log("[Step5] Scheduling verification check in 1.5 seconds...")
 			setTimeout(() => {
-				const container = iframeDoc.getElementById("preview-container")
-				if (container) {
-					const firstDiv = container.querySelector("div")
-					if (firstDiv) {
-						const computedStyle = iframe.contentWindow?.getComputedStyle(firstDiv)
-						console.log("[Step5] First div computed width:", computedStyle?.width)
-						console.log("[Step5] First div classes:", firstDiv.className)
+				console.log("[Step5] ========== VERIFICATION CHECK ==========")
+				try {
+					const container = iframeDoc.getElementById("preview-container")
+					if (!container) {
+						console.error("[Step5] ✗ VERIFICATION FAILED: Preview container not found!")
+						return
 					}
+					console.log("[Step5] ✓ Preview container exists")
+
+					const firstDiv = container.querySelector("div")
+					if (!firstDiv) {
+						console.error("[Step5] ✗ VERIFICATION FAILED: No div inside container!")
+						console.error(
+							"[Step5] Container HTML:",
+							container.innerHTML.substring(0, 500),
+						)
+						return
+					}
+					console.log("[Step5] ✓ Found first div element")
+
+					const computedStyle = iframe.contentWindow?.getComputedStyle(firstDiv)
+					if (!computedStyle) {
+						console.error("[Step5] ✗ VERIFICATION FAILED: Cannot get computed styles!")
+						return
+					}
+
+					console.log("[Step5] ========== COMPUTED STYLES ==========")
+					console.log("[Step5] Width:", computedStyle.width)
+					console.log("[Step5] Height:", computedStyle.height)
+					console.log("[Step5] Position:", computedStyle.position)
+					console.log("[Step5] Background:", computedStyle.backgroundColor)
+					console.log("[Step5] Left:", computedStyle.left)
+					console.log("[Step5] Top:", computedStyle.top)
+					console.log("[Step5] Classes:", firstDiv.className)
+					console.log("[Step5] ========== END VERIFICATION ==========")
+
+					// SUCCESS CHECK: If width is set correctly, Tailwind is working
+					if (computedStyle.width && computedStyle.width !== "auto") {
+						console.log("[Step5] ✓✓✓ SUCCESS! Tailwind classes are being applied!")
+					} else {
+						console.warn(
+							"[Step5] ⚠ WARNING: Width is 'auto', Tailwind may not be processing classes!",
+						)
+					}
+				} catch (verifyError) {
+					console.error("[Step5] ✗ Verification check failed:", verifyError)
+					console.error(
+						"[Step5] Verify error stack:",
+						verifyError instanceof Error ? verifyError.stack : "No stack",
+					)
 				}
-			}, 1000)
+			}, 1500)
+
+			console.log("[Step5] ========== IFRAME RENDER COMPLETE ==========")
 		} catch (error) {
+			console.error("[Step5] ========== CRITICAL ERROR ==========")
 			console.error("[Step5] Error updating iframe:", error)
+			console.error("[Step5] Error type:", typeof error)
+			console.error("[Step5] Error stack:", error instanceof Error ? error.stack : "No stack")
+			console.error(
+				"[Step5] Error details:",
+				JSON.stringify(error, Object.getOwnPropertyNames(error)),
+			)
+			console.error("[Step5] ========== END ERROR ==========")
 		}
 	}, [jsx, formData, fields])
 
