@@ -108,7 +108,7 @@ export async function convertFigmaToTailwind(input: FigmaInput): Promise<Convers
 					model: "anthropic/claude-sonnet-4.5",
 					messages,
 					temperature: 0.3,
-					max_tokens: 4000,
+					max_tokens: 16000, // Increased from 4000 to handle large JSX outputs without truncation
 					// Structured outputs with proper OpenRouter format
 					response_format: {
 						type: "json_schema",
