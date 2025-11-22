@@ -43,10 +43,11 @@ Output format (JSON):
   "warnings": ["Any issues or suggestions"]
 }
 
-Important:
-- Return ONLY valid JSON, no markdown code blocks
+CRITICAL - Output Requirements:
+- You MUST return ONLY valid JSON (no markdown, no text before/after)
 - Ensure all JSX is properly escaped in the JSON string
 - Use double quotes for JSON keys and string values
+- The response will be parsed directly as JSON
 - Test that the JSX would compile without errors`
 
 export const buildUserPrompt = (
@@ -70,5 +71,7 @@ ${textStyles}
 - Width: ${dimensions.width}px
 - Height: ${dimensions.height}px
 
-Please convert this to a pixel-perfect React component using Tailwind CSS, maintaining the exact proportions and identifying all fillable fields.`
+Please convert this to a pixel-perfect React component using Tailwind CSS, maintaining the exact proportions and identifying all fillable fields.
+
+REMEMBER: Return ONLY the JSON object, no other text.`
 }

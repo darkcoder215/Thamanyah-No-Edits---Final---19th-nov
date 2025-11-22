@@ -42,22 +42,43 @@ export async function convertFigmaToTailwind(input: FigmaInput): Promise<Convers
 			},
 		]
 
-		// Call OpenRouter API
-		const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${apiKey}`,
-				"Content-Type": "application/json",
-				"HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-				"X-Title": "Thmanyah Figma Converter",
-			},
-			body: JSON.stringify({
-				model: "anthropic/claude-sonnet-4.5",
-				messages,
-				temperature: 0.3,
-				max_tokens: 4000,
-			}),
-		})
+		// Call OpenRouter API with timeout
+		const controller = new AbortController()
+		const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 min timeout
+
+		let response: Response
+		try {
+			response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${apiKey}`,
+					"Content-Type": "application/json",
+					"HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+					"X-Title": "Thmanyah Figma Converter",
+				},
+				body: JSON.stringify({
+					model: "anthropic/claude-sonnet-4.5",
+					messages,
+					temperature: 0.3,
+					max_tokens: 4000,
+					// Force JSON output for structured responses
+					response_format: { type: "json_object" },
+				}),
+				signal: controller.signal,
+			})
+		} catch (err) {
+			clearTimeout(timeoutId)
+			// Handle timeout specifically
+			if (err instanceof Error && err.name === "AbortError") {
+				throw new FigmaConverterError(
+					"AI processing timed out after 2 minutes. Try a simpler design or smaller screenshot.",
+					ErrorCode.AI_TIMEOUT,
+				)
+			}
+			throw err
+		} finally {
+			clearTimeout(timeoutId)
+		}
 
 		if (!response.ok) {
 			const errorData = await response.json().catch(() => ({}))
@@ -114,12 +135,50 @@ function parseAIResponse(content: string): ConversionResult {
 			throw new Error("Missing or invalid 'fields' array in AI response")
 		}
 
+		// Validate each field has required properties
+		type ValidatedField = {
+			name: string
+			type: string
+			selector: string
+			defaultValue?: string
+			placeholder?: string
+		}
+
+		const validatedFields = parsed.fields
+			.map((field: unknown, idx: number): ValidatedField | null => {
+				if (
+					!field ||
+					typeof field !== "object" ||
+					!("name" in field) ||
+					!("type" in field) ||
+					!("selector" in field)
+				) {
+					console.warn(`Invalid field at index ${idx}, skipping:`, field)
+					return null
+				}
+
+				return {
+					name: String((field as { name: unknown }).name),
+					type: String((field as { type: unknown }).type),
+					selector: String((field as { selector: unknown }).selector),
+					defaultValue:
+						"defaultValue" in field
+							? String((field as { defaultValue: unknown }).defaultValue)
+							: undefined,
+					placeholder:
+						"placeholder" in field
+							? String((field as { placeholder: unknown }).placeholder)
+							: undefined,
+				}
+			})
+			.filter((field: ValidatedField | null): field is ValidatedField => field !== null)
+
 		return {
 			jsx: parsed.jsx,
-			fields: parsed.fields || [],
+			fields: validatedFields,
 			dimensions: parsed.dimensions || { width: "210mm", height: "297mm" },
-			tailwindClasses: parsed.tailwindClasses || [],
-			warnings: parsed.warnings || [],
+			tailwindClasses: Array.isArray(parsed.tailwindClasses) ? parsed.tailwindClasses : [],
+			warnings: Array.isArray(parsed.warnings) ? parsed.warnings : [],
 			errors: [],
 		}
 	} catch (error) {
