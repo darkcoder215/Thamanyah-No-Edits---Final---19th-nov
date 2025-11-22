@@ -130,7 +130,7 @@ Mark Color Fields:
 
 Output Format (JSON):
 {
-  "jsx": "Complete React component code as a string",
+  "jsx": "ONLY the JSX markup - NOT wrapped in a component function. Just the raw JSX that would go inside a return statement.",
   "fields": [
     {
       "name": "candidateName",
@@ -162,6 +162,22 @@ Output Format (JSON):
   "warnings": []
 }
 
+CRITICAL - JSX Format:
+DO NOT wrap the JSX in a component function. Return ONLY the JSX markup.
+
+WRONG:
+const JobOfferComponent = () => {
+  return (
+    <div className="...">...</div>
+  );
+};
+
+CORRECT:
+<div className="w-[595px] h-[842px] relative bg-[#F2EEE4]" dir="rtl">
+  <div className="absolute left-[40px] top-[766px] bg-black" />
+  ...
+</div>
+
 Validation Checklist:
 Before returning your output, verify:
 
@@ -172,12 +188,15 @@ Before returning your output, verify:
 ✓ All editable text has data-field attribute
 ✓ All icons/emojis identified with data-field
 ✓ All dynamic colors identified with data-field
-✓ Component wrapped in functional React component syntax
+✓ JSX is JUST the markup - NO component function wrapper
 ✓ Custom fonts preserved in style={{fontFamily: '...'}}
 
 CRITICAL - Output Requirements:
 - You MUST return ONLY valid JSON (no markdown, no text before/after)
-- The "jsx" field must contain the complete React component code as a string
+- The "jsx" field must contain ONLY the JSX markup without any component wrapper
+- Do NOT include: const ComponentName = () => { return ( ... ) }
+- Do NOT include: export default ComponentName
+- ONLY include the JSX elements themselves
 - Ensure all JSX is properly escaped in the JSON string
 - Use double quotes for JSON keys and string values
 - The response will be parsed directly as JSON`
