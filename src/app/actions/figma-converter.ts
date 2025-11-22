@@ -61,8 +61,6 @@ export async function convertFigmaToTailwind(input: FigmaInput): Promise<Convers
 					messages,
 					temperature: 0.3,
 					max_tokens: 4000,
-					// Force JSON output for structured responses
-					response_format: { type: "json_object" },
 				}),
 				signal: controller.signal,
 			})
