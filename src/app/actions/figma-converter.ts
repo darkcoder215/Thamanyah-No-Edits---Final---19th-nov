@@ -1,28 +1,14 @@
 "use server"
 
 import { type ConversionResult, type FigmaInput } from "@/types/figma"
+import { FIGMA_CONVERSION_SYSTEM_PROMPT, buildUserPrompt } from "@/lib/openrouter/prompts"
 import { ErrorCode, FigmaConverterError } from "@/utils/errorHandler"
-import {
-	buildUserPrompt,
-	FIGMA_CONVERSION_SYSTEM_PROMPT,
-} from "@/lib/openrouter/prompts"
 
-interface StreamProgress {
-	progress: number
-	message: string
-	chunk?: string
-}
-
-export async function convertFigmaToTailwind(
-	input: FigmaInput,
-): Promise<ConversionResult> {
+export async function convertFigmaToTailwind(input: FigmaInput): Promise<ConversionResult> {
 	const apiKey = process.env.OPENROUTER_API_KEY
 
 	if (!apiKey) {
-		throw new FigmaConverterError(
-			"OpenRouter API key not configured",
-			ErrorCode.AI_ERROR,
-		)
+		throw new FigmaConverterError("OpenRouter API key not configured", ErrorCode.AI_ERROR)
 	}
 
 	try {
@@ -89,10 +75,7 @@ export async function convertFigmaToTailwind(
 		const content = data.choices?.[0]?.message?.content
 
 		if (!content) {
-			throw new FigmaConverterError(
-				"No content received from AI",
-				ErrorCode.AI_ERROR,
-			)
+			throw new FigmaConverterError("No content received from AI", ErrorCode.AI_ERROR)
 		}
 
 		// Parse the AI response

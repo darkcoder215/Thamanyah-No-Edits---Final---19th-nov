@@ -1,16 +1,15 @@
 "use client"
 
 import React, { useState } from "react"
-import { Button, Tabs, Alert, Form, Input, InputNumber, message } from "antd"
+import { type WizardData } from "@/types/template"
 import {
 	ArrowLeftOutlined,
-	DownloadOutlined,
 	CodeOutlined,
+	DownloadOutlined,
 	EyeOutlined,
 	SaveOutlined,
 } from "@ant-design/icons"
-import { type WizardData } from "@/types/template"
-import { type TemplateField } from "@/types/field"
+import { Alert, Button, Form, Input, InputNumber, Tabs, message } from "antd"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism"
 
@@ -56,16 +55,13 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 				const value = formData[field.name] || field.defaultValue || field.placeholder || ""
 				const marker = `data-field="${field.name}"`
 				const regex = new RegExp(`<([^>]+)${marker}([^>]*)>([^<]*)</\\1>`, "g")
-				previewHTML = previewHTML.replace(
-					regex,
-					`<$1$2>${value}</$1>`,
-				)
+				previewHTML = previewHTML.replace(regex, `<$1$2>${value}</$1>`)
 			})
 
 			return (
 				<div
 					dangerouslySetInnerHTML={{ __html: previewHTML }}
-					className="preview-content border rounded p-4 bg-white min-h-[500px]"
+					className="preview-content min-h-[500px] rounded border bg-white p-4"
 				/>
 			)
 		} catch (error) {
@@ -150,14 +146,14 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 						{/* Preview */}
 						<div>
 							<h3 className="mb-4 text-lg font-semibold">Preview</h3>
-							<div className="border rounded bg-gray-50 p-4 overflow-auto max-h-[600px]">
+							<div className="max-h-[600px] overflow-auto rounded border bg-gray-50 p-4">
 								{renderPreview()}
 							</div>
 						</div>
 					</div>
 
 					{/* Actions */}
-					<div className="flex justify-between mt-6 pt-4 border-t">
+					<div className="mt-6 flex justify-between border-t pt-4">
 						<Button onClick={onPrev} icon={<ArrowLeftOutlined />}>
 							Back
 						</Button>

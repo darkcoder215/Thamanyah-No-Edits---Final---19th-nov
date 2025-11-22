@@ -1,11 +1,10 @@
 "use client"
 
 import React, { useState } from "react"
-import { Button, Table, Select, Input, Switch, Form, Alert } from "antd"
-import { ArrowLeftOutlined, ArrowRightOutlined } from "@ant-design/icons"
+import { type FieldType, type TemplateField } from "@/types/field"
 import { type WizardData } from "@/types/template"
-import { type TemplateField, type FieldType } from "@/types/field"
-import { type DetectedField } from "@/types/figma"
+import { ArrowLeftOutlined, ArrowRightOutlined } from "@ant-design/icons"
+import { Alert, Button, Input, Select, Switch, Table } from "antd"
 
 const { Option } = Select
 
@@ -22,9 +21,7 @@ export default function Step3_FieldMapping({ wizardData, onNext, onPrev }: Step3
 		return detectedFields.map((field, idx) => ({
 			id: `field-${idx}`,
 			name: field.name,
-			label: field.name
-				.replace(/([A-Z])/g, " $1")
-				.replace(/^./, (str) => str.toUpperCase()),
+			label: field.name.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()),
 			type: field.type,
 			selector: field.selector,
 			required: true,
@@ -111,9 +108,7 @@ export default function Step3_FieldMapping({ wizardData, onNext, onPrev }: Step3
 			render: (text: string, record: TemplateField) => (
 				<Input
 					value={record.placeholder}
-					onChange={(e) =>
-						handleFieldUpdate(record.id, { placeholder: e.target.value })
-					}
+					onChange={(e) => handleFieldUpdate(record.id, { placeholder: e.target.value })}
 					placeholder="Enter placeholder..."
 				/>
 			),
@@ -126,9 +121,7 @@ export default function Step3_FieldMapping({ wizardData, onNext, onPrev }: Step3
 			render: (value: unknown, record: TemplateField) => (
 				<Input
 					value={String(record.defaultValue || "")}
-					onChange={(e) =>
-						handleFieldUpdate(record.id, { defaultValue: e.target.value })
-					}
+					onChange={(e) => handleFieldUpdate(record.id, { defaultValue: e.target.value })}
 					placeholder="Default value..."
 				/>
 			),

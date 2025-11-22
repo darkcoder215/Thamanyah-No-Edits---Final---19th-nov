@@ -22,7 +22,7 @@ interface Step1Props {
 	onPrev: () => void
 }
 
-export default function Step1_Input({ wizardData, onNext }: Step1Props) {
+export default function Step1_Input({ onNext }: Step1Props) {
 	const [form] = Form.useForm()
 	const [loading, setLoading] = useState(false)
 	const [screenshot, setScreenshot] = useState<File | null>(null)
