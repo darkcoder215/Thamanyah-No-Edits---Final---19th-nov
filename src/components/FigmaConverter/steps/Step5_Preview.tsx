@@ -429,11 +429,39 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 					}
 					key="code"
 				>
-					<div className="mb-4">
+					<div className="mb-4 space-y-3">
 						<Alert
 							type="success"
 							message="Code Generated Successfully"
 							description="You can copy this code and use it in your React project."
+						/>
+						<Alert
+							type="info"
+							message="AI Generation Details"
+							description={
+								<div className="space-y-1 text-sm">
+									<div>
+										<strong>JSX Length:</strong> {jsx.length} characters
+									</div>
+									<div>
+										<strong>Fields Detected:</strong> {fields.length} fillable
+										fields
+									</div>
+									<div>
+										<strong>Dimensions:</strong> {dimensions.width} ×{" "}
+										{dimensions.height}
+									</div>
+									<div>
+										<strong>Layout Strategy:</strong>{" "}
+										{jsx.includes("absolute")
+											? "Absolute Positioning"
+											: "Flexbox/Grid"}
+									</div>
+									<div className="mt-2 text-xs text-gray-500">
+										💡 Check Vercel Runtime Logs to see the full raw AI response
+									</div>
+								</div>
+							}
 						/>
 					</div>
 
@@ -450,7 +478,25 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 						{jsx}
 					</SyntaxHighlighter>
 
-					<div className="mt-4 flex justify-end">
+					<div className="mt-4 flex justify-end gap-3">
+						<Button
+							onClick={() => {
+								// Download as .jsx file
+								const blob = new Blob([jsx], { type: "text/plain" })
+								const url = URL.createObjectURL(blob)
+								const a = document.createElement("a")
+								a.href = url
+								a.download = `generated-component-${new Date().toISOString().slice(0, 10)}.jsx`
+								document.body.appendChild(a)
+								a.click()
+								document.body.removeChild(a)
+								URL.revokeObjectURL(url)
+								message.success("JSX file downloaded!")
+							}}
+							icon={<DownloadOutlined />}
+						>
+							Download JSX
+						</Button>
 						<Button
 							onClick={() => {
 								navigator.clipboard.writeText(jsx)

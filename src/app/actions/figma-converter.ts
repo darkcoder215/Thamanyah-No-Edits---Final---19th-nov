@@ -159,8 +159,26 @@ export async function convertFigmaToTailwind(input: FigmaInput): Promise<Convers
 			throw new FigmaConverterError("No content received from AI", ErrorCode.AI_ERROR)
 		}
 
+		// LOG THE RAW AI RESPONSE FOR DEBUGGING
+		console.log("========================================")
+		console.log("[Figma Converter] RAW AI RESPONSE:")
+		console.log("========================================")
+		console.log(content)
+		console.log("========================================")
+		console.log("[Figma Converter] END RAW AI RESPONSE")
+		console.log("========================================")
+
 		// Parse the AI response
 		const result = parseAIResponse(content)
+
+		// LOG THE PARSED JSX CODE
+		console.log("========================================")
+		console.log("[Figma Converter] PARSED JSX CODE:")
+		console.log("========================================")
+		console.log(result.jsx)
+		console.log("========================================")
+		console.log("[Figma Converter] END PARSED JSX CODE")
+		console.log("========================================")
 
 		console.log(`[Figma Converter] Success! Generated JSX with ${result.fields.length} fields`)
 
