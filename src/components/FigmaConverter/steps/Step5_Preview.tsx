@@ -65,28 +65,17 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 		}
 	}
 
-	// Handle iframe load
-	const handleIframeLoad = () => {
-		console.log("[Step5] Iframe loaded event fired")
-		setIframeReady(true)
-	}
-
 	// Update iframe content whenever formData or jsx changes
 	useEffect(() => {
-		console.log(
-			"[Step5] useEffect triggered - iframeReady:",
-			iframeReady,
-			"jsx length:",
-			jsx.length,
-		)
-
-		if (!iframeReady) {
-			console.log("[Step5] Iframe not ready yet, skipping update")
-			return
-		}
+		console.log("[Step5] useEffect triggered - jsx length:", jsx.length)
 
 		if (!iframeRef.current) {
 			console.log("[Step5] iframeRef.current is null")
+			return
+		}
+
+		if (!jsx || jsx.trim().length === 0) {
+			console.log("[Step5] No JSX to render")
 			return
 		}
 
@@ -190,6 +179,9 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 
 			console.log("[Step5] Iframe updated successfully")
 
+			// Mark iframe as ready after content is written
+			setIframeReady(true)
+
 			// Wait for iframe to load, then check if Tailwind processed
 			setTimeout(() => {
 				const container = iframeDoc.getElementById("preview-container")
@@ -205,7 +197,7 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 		} catch (error) {
 			console.error("[Step5] Error updating iframe:", error)
 		}
-	}, [jsx, formData, fields, iframeReady])
+	}, [jsx, formData, fields])
 
 	const handleDownloadPDF = async () => {
 		if (!iframeRef.current) {
@@ -381,10 +373,9 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 									showIcon
 								/>
 							) : (
-								<div className="overflow-auto rounded border bg-gray-100">
+								<div className="relative overflow-auto rounded border bg-gray-100">
 									<iframe
 										ref={iframeRef}
-										onLoad={handleIframeLoad}
 										className="h-[900px] w-full border-0"
 										title="Template Preview"
 										sandbox="allow-same-origin allow-scripts"
