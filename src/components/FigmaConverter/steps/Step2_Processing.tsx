@@ -1,16 +1,16 @@
 "use client"
 
 import React, { useEffect, useState } from "react"
-import { Progress, Alert, Button, Spin } from "antd"
+import { convertFigmaToTailwind } from "@/app/actions/figma-converter"
+import { type ConversionResult } from "@/types/figma"
+import { type WizardData } from "@/types/template"
 import {
+	ArrowLeftOutlined,
 	CheckCircleOutlined,
 	LoadingOutlined,
 	WarningOutlined,
-	ArrowLeftOutlined,
 } from "@ant-design/icons"
-import { type WizardData } from "@/types/template"
-import { type ConversionResult } from "@/types/figma"
-import { convertFigmaToTailwind } from "@/app/actions/figma-converter"
+import { Alert, Button, Progress, Spin } from "antd"
 import { FigmaConverterError, errorMessages } from "@/utils/errorHandler"
 
 interface Step2Props {
@@ -72,13 +72,27 @@ export default function Step2_Processing({ wizardData, onNext, onPrev }: Step2Pr
 			setStatus("error")
 			setProgress(0)
 
+			// Log full error details to console for debugging
+			console.error("[Step2] Full error details:", err)
+			console.error("[Step2] Error type:", typeof err)
+			console.error(
+				"[Step2] Error stringified:",
+				JSON.stringify(err, Object.getOwnPropertyNames(err)),
+			)
+
 			if (err instanceof FigmaConverterError) {
 				setError(err)
 				setMessage(err.message)
-			} else {
-				setMessage(
-					err instanceof Error ? err.message : "An unexpected error occurred",
+			} else if (err instanceof Error) {
+				// Create a custom error to show full details
+				const customError = new FigmaConverterError(
+					`${err.message}\n\nStack: ${err.stack || "No stack trace"}`,
+					ErrorCode.AI_ERROR,
 				)
+				setError(customError)
+				setMessage(err.message)
+			} else {
+				setMessage(`An unexpected error occurred: ${JSON.stringify(err)}`)
 			}
 		}
 	}
@@ -98,9 +112,19 @@ export default function Step2_Processing({ wizardData, onNext, onPrev }: Step2Pr
 			<div className="mb-8">
 				<Progress
 					percent={progress}
-					status={status === "error" ? "exception" : status === "success" ? "success" : "active"}
+					status={
+						status === "error"
+							? "exception"
+							: status === "success"
+								? "success"
+								: "active"
+					}
 					strokeColor={
-						status === "error" ? "#ff4d4f" : status === "success" ? "#52c41a" : "#1890ff"
+						status === "error"
+							? "#ff4d4f"
+							: status === "success"
+								? "#52c41a"
+								: "#1890ff"
 					}
 				/>
 			</div>
@@ -154,8 +178,12 @@ export default function Step2_Processing({ wizardData, onNext, onPrev }: Step2Pr
 					description={
 						<div>
 							<p className="mb-2">✓ JSX code generated</p>
-							<p className="mb-2">✓ {result.fields.length} fillable fields detected</p>
-							<p className="mb-2">✓ {result.tailwindClasses.length} Tailwind classes used</p>
+							<p className="mb-2">
+								✓ {result.fields.length} fillable fields detected
+							</p>
+							<p className="mb-2">
+								✓ {result.tailwindClasses.length} Tailwind classes used
+							</p>
 							{result.warnings && result.warnings.length > 0 && (
 								<div className="mt-3">
 									<p className="font-semibold">Warnings:</p>

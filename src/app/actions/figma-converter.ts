@@ -21,7 +21,53 @@ export async function convertFigmaToTailwind(input: FigmaInput): Promise<Convers
 		// Build the user prompt
 		const userPrompt = buildUserPrompt(input.jsx, textStyles, input.dimensions)
 
-		// Prepare messages
+		// Define JSON schema for structured outputs
+		const responseSchema = {
+			type: "object" as const,
+			properties: {
+				jsx: {
+					type: "string" as const,
+					description: "React JSX code with Tailwind CSS classes",
+				},
+				fields: {
+					type: "array" as const,
+					description: "Array of detected fillable fields",
+					items: {
+						type: "object" as const,
+						properties: {
+							name: { type: "string" as const },
+							type: { type: "string" as const },
+							selector: { type: "string" as const },
+							defaultValue: { type: "string" as const },
+							placeholder: { type: "string" as const },
+						},
+						required: ["name", "type", "selector"],
+						additionalProperties: false,
+					},
+				},
+				dimensions: {
+					type: "object" as const,
+					properties: {
+						width: { type: "string" as const },
+						height: { type: "string" as const },
+					},
+					required: ["width", "height"],
+					additionalProperties: false,
+				},
+				tailwindClasses: {
+					type: "array" as const,
+					items: { type: "string" as const },
+				},
+				warnings: {
+					type: "array" as const,
+					items: { type: "string" as const },
+				},
+			},
+			required: ["jsx", "fields", "dimensions"],
+			additionalProperties: false,
+		}
+
+		// Prepare messages with correct image_url format
 		const messages = [
 			{ role: "system", content: FIGMA_CONVERSION_SYSTEM_PROMPT },
 			{
@@ -42,7 +88,9 @@ export async function convertFigmaToTailwind(input: FigmaInput): Promise<Convers
 			},
 		]
 
-		// Call OpenRouter API with timeout
+		console.log("[Figma Converter] Sending request to OpenRouter API...")
+
+		// Call OpenRouter API with timeout and structured outputs
 		const controller = new AbortController()
 		const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 min timeout
 
@@ -54,13 +102,22 @@ export async function convertFigmaToTailwind(input: FigmaInput): Promise<Convers
 					Authorization: `Bearer ${apiKey}`,
 					"Content-Type": "application/json",
 					"HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-					"X-Title": "Thmanyah Figma Converter",
+					"X-Title": "Figma Template Converter",
 				},
 				body: JSON.stringify({
 					model: "anthropic/claude-sonnet-4.5",
 					messages,
 					temperature: 0.3,
 					max_tokens: 4000,
+					// Structured outputs with proper OpenRouter format
+					response_format: {
+						type: "json_schema",
+						json_schema: {
+							name: "figma_conversion",
+							strict: true,
+							schema: responseSchema,
+						},
+					},
 				}),
 				signal: controller.signal,
 			})
@@ -73,13 +130,18 @@ export async function convertFigmaToTailwind(input: FigmaInput): Promise<Convers
 					ErrorCode.AI_TIMEOUT,
 				)
 			}
+			// Log the actual error for debugging
+			console.error("[Figma Converter] Fetch error:", err)
 			throw err
 		} finally {
 			clearTimeout(timeoutId)
 		}
 
+		console.log("[Figma Converter] Response status:", response.status)
+
 		if (!response.ok) {
 			const errorData = await response.json().catch(() => ({}))
+			console.error("[Figma Converter] API error:", errorData)
 			throw new FigmaConverterError(
 				`OpenRouter API error: ${response.status} - ${errorData.error?.message || "Unknown error"}`,
 				ErrorCode.AI_ERROR,
@@ -88,17 +150,29 @@ export async function convertFigmaToTailwind(input: FigmaInput): Promise<Convers
 		}
 
 		const data = await response.json()
+		console.log("[Figma Converter] Response received, parsing content...")
+
 		const content = data.choices?.[0]?.message?.content
 
 		if (!content) {
+			console.error("[Figma Converter] No content in response:", data)
 			throw new FigmaConverterError("No content received from AI", ErrorCode.AI_ERROR)
 		}
 
 		// Parse the AI response
 		const result = parseAIResponse(content)
 
+		console.log(`[Figma Converter] Success! Generated JSX with ${result.fields.length} fields`)
+
 		return result
 	} catch (error) {
+		// Log full error details for debugging
+		console.error("[Figma Converter] Error occurred:", {
+			error,
+			message: error instanceof Error ? error.message : "Unknown error",
+			stack: error instanceof Error ? error.stack : undefined,
+		})
+
 		if (error instanceof FigmaConverterError) {
 			throw error
 		}
