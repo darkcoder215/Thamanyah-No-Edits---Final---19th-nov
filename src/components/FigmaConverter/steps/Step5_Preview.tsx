@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { type WizardData } from "@/types/template"
 import {
 	ArrowLeftOutlined,
@@ -10,7 +10,8 @@ import {
 	SaveOutlined,
 } from "@ant-design/icons"
 import { Alert, Button, Form, Input, InputNumber, Tabs, message } from "antd"
-import parse from "html-react-parser"
+import html2canvas from "html2canvas"
+import jsPDF from "jspdf"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism"
 
@@ -25,33 +26,23 @@ interface Step5Props {
 export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props) {
 	const [form] = Form.useForm()
 	const [formData, setFormData] = useState<Record<string, unknown>>({})
-	const [showDimensions, setShowDimensions] = useState(false)
+	const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+	const iframeRef = useRef<HTMLIFrameElement>(null)
 
 	const fields = wizardData.step3 || []
 	const jsx = wizardData.step2?.jsx || ""
+	const dimensions = wizardData.step2?.dimensions || { width: "595px", height: "842px" }
 
 	const handleFormChange = (changedValues: Record<string, unknown>) => {
 		setFormData((prev) => ({ ...prev, ...changedValues }))
 	}
 
-	const handleDownloadPDF = () => {
-		setShowDimensions(false)
-		setTimeout(() => {
-			window.print()
-		}, 100)
-	}
-
-	const handleSaveTemplate = () => {
-		// TODO: Implement template saving to localStorage/database
-		message.success("Template saved successfully!")
-	}
-
-	// Create a preview by parsing JSX as React components
-	const renderPreview = () => {
+	// Generate preview HTML with filled form data
+	const getPreviewHTML = () => {
 		try {
-			// Replace field markers with form data
 			let previewHTML = jsx
 
+			// Replace field markers with form data
 			fields.forEach((field) => {
 				const value = formData[field.name] || field.defaultValue || field.placeholder || ""
 				const marker = `data-field="${field.name}"`
@@ -59,17 +50,177 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 				previewHTML = previewHTML.replace(regex, `<$1$2>${value}</$1>`)
 			})
 
-			// Parse HTML string to React components - this allows Tailwind classes to work!
-			return <div className="preview-content">{parse(previewHTML)}</div>
+			return previewHTML
 		} catch (error) {
-			console.error("[Step5] Preview render error:", error)
-			return (
-				<Alert
-					type="error"
-					message="Preview Error"
-					description={`Failed to render preview: ${error instanceof Error ? error.message : "Unknown error"}`}
-				/>
+			console.error("[Step5] Error generating preview HTML:", error)
+			return ""
+		}
+	}
+
+	// Update iframe content whenever formData or jsx changes
+	useEffect(() => {
+		if (!iframeRef.current) return
+
+		const iframe = iframeRef.current
+		const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+
+		if (!iframeDoc) {
+			console.error("[Step5] Cannot access iframe document")
+			return
+		}
+
+		try {
+			const previewHTML = getPreviewHTML()
+
+			// Create complete HTML document with Tailwind CDN
+			const htmlContent = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Preview</title>
+	<!-- Tailwind CDN with all features enabled -->
+	<script src="https://cdn.tailwindcss.com"></script>
+	<script>
+		tailwind.config = {
+			theme: {
+				extend: {
+					// Enable all arbitrary values
+				}
+			}
+		}
+	</script>
+	<style>
+		* {
+			-webkit-print-color-adjust: exact !important;
+			print-color-adjust: exact !important;
+		}
+		body {
+			margin: 0;
+			padding: 20px;
+			display: flex;
+			justify-content: center;
+			align-items: flex-start;
+			min-height: 100vh;
+			background: #f5f5f5;
+		}
+		#preview-container {
+			background: white;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+		}
+	</style>
+</head>
+<body>
+	<div id="preview-container">
+		${previewHTML}
+	</div>
+</body>
+</html>
+			`
+
+			// Write to iframe
+			iframeDoc.open()
+			iframeDoc.write(htmlContent)
+			iframeDoc.close()
+
+			console.log("[Step5] Iframe updated successfully")
+		} catch (error) {
+			console.error("[Step5] Error updating iframe:", error)
+		}
+	}, [jsx, formData, fields])
+
+	const handleDownloadPDF = async () => {
+		if (!iframeRef.current) {
+			message.error("Preview not ready. Please wait and try again.")
+			return
+		}
+
+		setIsGeneratingPDF(true)
+
+		try {
+			console.log("[Step5] Starting PDF generation...")
+
+			const iframe = iframeRef.current
+			const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
+
+			if (!iframeDoc) {
+				throw new Error("Cannot access iframe document")
+			}
+
+			const previewContainer = iframeDoc.getElementById("preview-container")
+
+			if (!previewContainer) {
+				throw new Error("Preview container not found in iframe")
+			}
+
+			console.log("[Step5] Capturing preview as canvas...")
+
+			// Capture the preview container as canvas
+			const canvas = await html2canvas(previewContainer, {
+				scale: 2, // Higher quality
+				useCORS: true,
+				allowTaint: true,
+				backgroundColor: "#ffffff",
+				logging: true,
+			})
+
+			console.log("[Step5] Canvas captured, creating PDF...")
+
+			// Parse dimensions
+			const widthPx = parseFloat(dimensions.width)
+			const heightPx = parseFloat(dimensions.height)
+
+			// Convert pixels to mm (assuming 96 DPI)
+			const widthMm = (widthPx * 25.4) / 96
+			const heightMm = (heightPx * 25.4) / 96
+
+			// Create PDF with exact dimensions
+			const pdf = new jsPDF({
+				orientation: heightPx > widthPx ? "portrait" : "landscape",
+				unit: "mm",
+				format: [widthMm, heightMm],
+			})
+
+			// Add canvas as image to PDF
+			const imgData = canvas.toDataURL("image/png")
+			pdf.addImage(imgData, "PNG", 0, 0, widthMm, heightMm)
+
+			// Download PDF
+			const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5)
+			pdf.save(`template-${timestamp}.pdf`)
+
+			console.log("[Step5] PDF generated successfully!")
+			message.success("PDF downloaded successfully!")
+		} catch (error) {
+			console.error("[Step5] PDF generation error:", error)
+			message.error(
+				`Failed to generate PDF: ${error instanceof Error ? error.message : "Unknown error"}`,
 			)
+		} finally {
+			setIsGeneratingPDF(false)
+		}
+	}
+
+	const handleSaveTemplate = () => {
+		try {
+			// Save to localStorage
+			const template = {
+				jsx,
+				fields,
+				dimensions,
+				createdAt: new Date().toISOString(),
+			}
+
+			const existingTemplates = JSON.parse(localStorage.getItem("saved-templates") || "[]")
+			existingTemplates.push(template)
+			localStorage.setItem("saved-templates", JSON.stringify(existingTemplates))
+
+			message.success("Template saved successfully!")
+			console.log("[Step5] Template saved to localStorage")
+		} catch (error) {
+			console.error("[Step5] Error saving template:", error)
+			message.error("Failed to save template")
 		}
 	}
 
@@ -144,8 +295,13 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 						{/* Preview */}
 						<div>
 							<h3 className="mb-4 text-lg font-semibold">Preview</h3>
-							<div className="flex max-h-[900px] overflow-auto rounded border bg-white">
-								{renderPreview()}
+							<div className="overflow-auto rounded border bg-gray-100">
+								<iframe
+									ref={iframeRef}
+									className="h-[900px] w-full border-0"
+									title="Template Preview"
+									sandbox="allow-same-origin"
+								/>
 							</div>
 						</div>
 					</div>
@@ -164,8 +320,10 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 								type="primary"
 								onClick={handleDownloadPDF}
 								icon={<DownloadOutlined />}
+								loading={isGeneratingPDF}
+								disabled={isGeneratingPDF}
 							>
-								Download as PDF
+								{isGeneratingPDF ? "Generating PDF..." : "Download as PDF"}
 							</Button>
 						</div>
 					</div>
@@ -213,45 +371,6 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 					</div>
 				</TabPane>
 			</Tabs>
-
-			{/* Print CSS */}
-			<style jsx global>{`
-				.preview-content {
-					/* Ensure container doesn't interfere with absolute positioning */
-					position: relative;
-					display: inline-block;
-				}
-
-				@media print {
-					.no-print,
-					.ant-tabs,
-					button,
-					.hide-print {
-						display: none !important;
-					}
-
-					.preview-content {
-						border: none !important;
-						padding: 0 !important;
-						margin: 0 !important;
-						min-height: auto !important;
-					}
-
-					* {
-						-webkit-print-color-adjust: exact !important;
-						print-color-adjust: exact !important;
-					}
-
-					@page {
-						size: A4;
-						margin: 0;
-					}
-
-					body {
-						background: white !important;
-					}
-				}
-			`}</style>
 		</div>
 	)
 }
