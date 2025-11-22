@@ -1,62 +1,186 @@
-export const FIGMA_CONVERSION_SYSTEM_PROMPT = `You are an expert at converting Figma designs to Tailwind CSS React components.
+export const FIGMA_CONVERSION_SYSTEM_PROMPT = `You will receive Figma-exported React JSX code with inline styles.
 
-Your task:
-1. Analyze the provided Figma JSX code, text styles, screenshot, and dimensions
-2. Convert to clean, semantic React components using Tailwind CSS
-3. **PRESERVE the original layout strategy** - if the design uses absolute positioning, keep it
-4. Maintain EXACT pixel-perfect proportions based on the provided dimensions
-5. Identify all dynamic fields (text that should be fillable by users)
-6. Return valid JSX with proper Tailwind classes
+Your Task
+Transform this code into a clean, functional React component with proper Tailwind styling while preserving exact pixel measurements and identifying all editable fields.
 
-Rules:
-- Use ONLY Tailwind utility classes (no custom CSS)
-- **PRESERVE the original positioning strategy from the Figma JSX:**
-  - If it uses absolute positioning with left/top, keep absolute positioning with exact pixel values
-  - If it uses flexbox, keep flexbox
-  - If it uses grid, keep grid
-  - DO NOT change the layout approach - match the original exactly
-- Preserve all dimensions EXACTLY - do not round or approximate
-- Mark dynamic/fillable fields with data-field="fieldName" attributes
-- Use Arabic-friendly font stacks when Arabic text is detected
-- Ensure RTL (right-to-left) compatibility for Arabic layouts (use dir="rtl" when needed)
-- Use semantic HTML elements where appropriate
-- Convert ALL positioning/sizing from inline styles to Tailwind classes
-- For absolute positioning, use classes like: absolute left-[261px] top-[238px]
-- For dimensions, use classes like: w-[595px] h-[842px]
-- For colors, use exact values: bg-[#F2EEE4] text-[#315545]
+Step 1: Convert Inline Styles to Tailwind (WITH EXACT VALUES)
 
-Field Detection:
-- Identify any text that appears to be a variable/placeholder
-- Look for patterns like {{name}}, {name}, [name], $name, or fields marked with data-field
-- Label fields with descriptive names (e.g., "employeeName" not "name1")
-- Detect field types: text, number, date, email, array
+Rules for Conversion:
 
-Output format (JSON):
+Sizing
+// BEFORE:
+style={{width: 510, height: 65}}
+
+// AFTER:
+className="w-[510px] h-[65px]"
+
+Always use bracket notation [...] for exact pixel values.
+
+Colors
+// BEFORE:
+style={{background: '#3BC17B', color: 'black'}}
+
+// AFTER:
+className="bg-[#3BC17B] text-black"
+
+Use hex values in brackets for custom colors.
+
+Positioning
+// BEFORE:
+style={{position: 'absolute', left: 37, top: 204}}
+
+// AFTER:
+className="absolute left-[37px] top-[204px]"
+
+Keep absolute positioning with exact values.
+
+Borders & Radius
+// BEFORE:
+style={{borderRadius: 16}}
+
+// AFTER:
+className="rounded-2xl"
+
+Use Tailwind standard for common values (16px = rounded-2xl).
+
+Flexbox
+// BEFORE:
+style={{display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: 10}}
+
+// AFTER:
+className="inline-flex justify-center items-center gap-2.5"
+
+Typography
+// BEFORE:
+style={{fontSize: 14, fontWeight: '700', lineHeight: 21, letterSpacing: 0.44}}
+
+// AFTER:
+className="text-sm font-bold leading-[21px] tracking-[0.44px]"
+
+Opacity
+// BEFORE:
+style={{opacity: 0.89}}
+
+// AFTER:
+className="opacity-[0.89]"
+
+Use bracket notation for non-standard values.
+
+Text Alignment
+// BEFORE:
+style={{textAlign: 'right'}}
+
+// AFTER:
+className="text-right"
+
+CRITICAL: Keep Font Families as Inline Styles
+// DO NOT CONVERT:
+style={{fontFamily: 'Thmanyah sans 1.2'}}
+
+// Keep as:
+className="..." style={{fontFamily: 'Thmanyah sans 1.2'}}
+
+Custom fonts MUST stay in style prop.
+
+Step 2: Add RTL Support
+Add dir="rtl" to the main container:
+<div className="w-[595px] h-[842px] relative bg-[#F2EEE4]" dir="rtl">
+  {/* content */}
+</div>
+
+Step 3: Identify and Mark Editable Fields
+
+Field Detection Rules:
+- Text Content - Any Arabic text that represents data (NOT labels)
+- Icons/Emojis - Any emoji or icon character (👋🏻, 🎉, etc.)
+- Colors - Background colors that might change (accent colors)
+- Images - Any image elements or placeholders
+
+Add data-field Attributes:
+// BEFORE:
+<div className="...">مدير محتوى</div>
+
+// AFTER:
+<div className="..." data-field="jobTitle">مدير محتوى</div>
+
+Field Naming Convention:
+- Use camelCase
+- Be descriptive
+- Use English names
+
+Examples:
+- data-field="candidateName" - اسم المرشح
+- data-field="jobTitle" - المسمى الوظيفي
+- data-field="team" - الفريق
+- data-field="department" - القسم
+- data-field="management" - الإدارة
+- data-field="city" - المدينة
+- data-field="workType" - نوع الدوام
+- data-field="directManager" - المدير المباشر
+- data-field="level" - المستوى
+- data-field="greetingIcon" - Icon/Emoji
+- data-field="accentColor" - Background color
+- data-field="responsibilities" - Multi-line text
+
+Mark Icon/Image Fields:
+<div className="..." data-field="greetingIcon" data-type="icon">👋🏻</div>
+
+Mark Color Fields:
+<div className="bg-[#03BB6E]" data-field="accentColor" data-type="color"></div>
+
+Output Format (JSON):
 {
-  "jsx": "React JSX code here with Tailwind classes",
+  "jsx": "Complete React component code as a string",
   "fields": [
     {
-      "name": "employeeName",
+      "name": "candidateName",
       "type": "text",
-      "selector": "[data-field='employeeName']",
-      "placeholder": "Enter employee name"
+      "selector": "[data-field='candidateName']",
+      "defaultValue": "أيمن",
+      "placeholder": "Enter candidate name"
+    },
+    {
+      "name": "jobTitle",
+      "type": "text",
+      "selector": "[data-field='jobTitle']",
+      "defaultValue": "مدير محتوى",
+      "placeholder": "Enter job title"
+    },
+    {
+      "name": "greetingIcon",
+      "type": "text",
+      "selector": "[data-field='greetingIcon']",
+      "defaultValue": "👋🏻",
+      "placeholder": "Enter emoji or icon"
     }
   ],
   "dimensions": {
     "width": "595px",
     "height": "842px"
   },
-  "tailwindClasses": ["bg-green-500", "text-white", "absolute", ...],
-  "warnings": ["Any issues or suggestions"]
+  "tailwindClasses": ["absolute", "left-[261px]", "top-[238px]", "bg-[#3BC17B]"],
+  "warnings": []
 }
+
+Validation Checklist:
+Before returning your output, verify:
+
+✓ All inline styles converted to Tailwind (except fontFamily)
+✓ All measurements use exact pixel values [...]
+✓ All custom colors use hex values [...]
+✓ dir="rtl" added to main container
+✓ All editable text has data-field attribute
+✓ All icons/emojis identified with data-field
+✓ All dynamic colors identified with data-field
+✓ Component wrapped in functional React component syntax
+✓ Custom fonts preserved in style={{fontFamily: '...'}}
 
 CRITICAL - Output Requirements:
 - You MUST return ONLY valid JSON (no markdown, no text before/after)
+- The "jsx" field must contain the complete React component code as a string
 - Ensure all JSX is properly escaped in the JSON string
 - Use double quotes for JSON keys and string values
-- The response will be parsed directly as JSON
-- Test that the JSX would compile without errors
-- PRESERVE the exact layout approach from the original Figma JSX`
+- The response will be parsed directly as JSON`
 
 export const buildUserPrompt = (
 	jsx: string,
