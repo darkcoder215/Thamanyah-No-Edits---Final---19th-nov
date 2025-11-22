@@ -43,8 +43,7 @@ export const errorMessages: Record<
 	},
 	[ErrorCode.AI_TIMEOUT]: {
 		title: "Processing Timeout",
-		suggestion:
-			"The design is too complex. Try simplifying or splitting into multiple pages.",
+		suggestion: "The design is too complex. Try simplifying or splitting into multiple pages.",
 		action: "Retry",
 	},
 	[ErrorCode.AI_ERROR]: {
@@ -84,13 +83,27 @@ export const validateJSX = (jsx: string): void => {
 		throw new FigmaConverterError("JSX code is required", ErrorCode.INVALID_JSX)
 	}
 
-	// Basic JSX validation
-	const openTags = jsx.match(/<[^/][^>]*>/g)?.length || 0
-	const closeTags = jsx.match(/<\/[^>]+>/g)?.length || 0
-
-	if (openTags !== closeTags) {
+	// Check for common Figma export errors
+	// 1. Detect style="..." instead of style={{...}}
+	const invalidStyleMatch = jsx.match(/<\w+[^>]*style="[^"]*"/)
+	if (invalidStyleMatch) {
 		throw new FigmaConverterError(
-			"JSX has mismatched opening and closing tags",
+			'Invalid JSX: Found style="..." which should be style={{...}}. Figma exports use quotes instead of curly braces.',
+			ErrorCode.INVALID_JSX,
+		)
+	}
+
+	// 2. Count tags properly (excluding self-closing tags)
+	const allOpenTags = jsx.match(/<(\w+)[^/>]*>/g) || []
+	const selfClosingTags = jsx.match(/<\w+[^>]*\/>/g) || []
+	const closeTags = jsx.match(/<\/\w+>/g) || []
+
+	const openTagsCount = allOpenTags.length - selfClosingTags.length
+	const closeTagsCount = closeTags.length
+
+	if (openTagsCount !== closeTagsCount) {
+		throw new FigmaConverterError(
+			`JSX has mismatched tags: ${openTagsCount} opening tags but ${closeTagsCount} closing tags`,
 			ErrorCode.INVALID_JSX,
 		)
 	}
