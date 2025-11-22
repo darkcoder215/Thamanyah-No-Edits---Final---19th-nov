@@ -10,6 +10,7 @@ import {
 	SaveOutlined,
 } from "@ant-design/icons"
 import { Alert, Button, Form, Input, InputNumber, Tabs, message } from "antd"
+import parse from "html-react-parser"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism"
 
@@ -45,7 +46,7 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 		message.success("Template saved successfully!")
 	}
 
-	// Create a simple preview by rendering the JSX as HTML
+	// Create a preview by parsing JSX as React components
 	const renderPreview = () => {
 		try {
 			// Replace field markers with form data
@@ -58,18 +59,15 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 				previewHTML = previewHTML.replace(regex, `<$1$2>${value}</$1>`)
 			})
 
-			return (
-				<div
-					dangerouslySetInnerHTML={{ __html: previewHTML }}
-					className="preview-content min-h-[500px] rounded border bg-white p-4"
-				/>
-			)
+			// Parse HTML string to React components - this allows Tailwind classes to work!
+			return <div className="preview-content">{parse(previewHTML)}</div>
 		} catch (error) {
+			console.error("[Step5] Preview render error:", error)
 			return (
 				<Alert
 					type="error"
 					message="Preview Error"
-					description="Failed to render preview. Please check the generated code."
+					description={`Failed to render preview: ${error instanceof Error ? error.message : "Unknown error"}`}
 				/>
 			)
 		}
@@ -146,7 +144,7 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 						{/* Preview */}
 						<div>
 							<h3 className="mb-4 text-lg font-semibold">Preview</h3>
-							<div className="max-h-[600px] overflow-auto rounded border bg-gray-50 p-4">
+							<div className="flex max-h-[900px] overflow-auto rounded border bg-white">
 								{renderPreview()}
 							</div>
 						</div>
@@ -218,6 +216,12 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 
 			{/* Print CSS */}
 			<style jsx global>{`
+				.preview-content {
+					/* Ensure container doesn't interfere with absolute positioning */
+					position: relative;
+					display: inline-block;
+				}
+
 				@media print {
 					.no-print,
 					.ant-tabs,
@@ -229,6 +233,7 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 					.preview-content {
 						border: none !important;
 						padding: 0 !important;
+						margin: 0 !important;
 						min-height: auto !important;
 					}
 

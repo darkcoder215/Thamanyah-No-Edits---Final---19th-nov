@@ -30,6 +30,7 @@
 		"@ant-design/nextjs-registry": "^1.2.0",
 		"@ant-design/v5-patch-for-react-19": "^1.0.3",
 		"antd": "^5.28.0",
+		"html-react-parser": "^5.2.10",
 		"next": "16.0.1",
 		"openai": "^4.77.3",
 		"react": "19.2.0",
