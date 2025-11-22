@@ -99,7 +99,7 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 		}
 
 		try {
-			const previewHTML = getPreviewHTML()
+			let previewHTML = getPreviewHTML()
 
 			if (!previewHTML || previewHTML.trim().length === 0) {
 				console.error("[Step5] Preview HTML is empty!")
@@ -107,7 +107,19 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 			}
 
 			console.log("[Step5] Preview HTML length:", previewHTML.length)
-			console.log("[Step5] Preview HTML sample:", previewHTML.substring(0, 200))
+			console.log(
+				"[Step5] Preview HTML sample (before transform):",
+				previewHTML.substring(0, 200),
+			)
+
+			// CRITICAL FIX: Convert JSX syntax to HTML syntax
+			// React uses "className", but HTML iframes need "class"
+			previewHTML = previewHTML.replace(/className=/g, "class=")
+
+			console.log(
+				"[Step5] Preview HTML sample (after transform):",
+				previewHTML.substring(0, 200),
+			)
 
 			// Create complete HTML document with Tailwind CDN
 			const htmlContent = `
