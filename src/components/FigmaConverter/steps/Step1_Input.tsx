@@ -1,16 +1,16 @@
 "use client"
 
 import React, { useState } from "react"
-import { Button, Form, Input, InputNumber, Upload, message, Alert } from "antd"
-import { InboxOutlined, ArrowRightOutlined } from "@ant-design/icons"
+import { type FigmaInput, type TextStyles } from "@/types/figma"
 import { type WizardData } from "@/types/template"
-import { type FigmaInput } from "@/types/figma"
+import { ArrowRightOutlined, InboxOutlined } from "@ant-design/icons"
+import { Alert, Button, Form, Input, InputNumber, Upload, message } from "antd"
 import {
-	validateJSX,
-	validateImage,
-	validateDimensions,
 	FigmaConverterError,
 	errorMessages,
+	validateDimensions,
+	validateImage,
+	validateJSX,
 } from "@/utils/errorHandler"
 
 const { TextArea } = Input
@@ -52,7 +52,7 @@ export default function Step1_Input({ wizardData, onNext }: Step1Props) {
 			validateDimensions(values.width, values.height)
 
 			// Parse text styles if JSON
-			let textStyles: string | Record<string, unknown> = values.textStyles
+			let textStyles: string | TextStyles = values.textStyles
 			try {
 				textStyles = JSON.parse(values.textStyles)
 			} catch {
