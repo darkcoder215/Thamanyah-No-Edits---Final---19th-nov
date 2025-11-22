@@ -72,6 +72,14 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 		try {
 			const previewHTML = getPreviewHTML()
 
+			if (!previewHTML || previewHTML.trim().length === 0) {
+				console.error("[Step5] Preview HTML is empty!")
+				return
+			}
+
+			console.log("[Step5] Preview HTML length:", previewHTML.length)
+			console.log("[Step5] Preview HTML sample:", previewHTML.substring(0, 200))
+
 			// Create complete HTML document with Tailwind CDN
 			const htmlContent = `
 <!DOCTYPE html>
@@ -83,13 +91,24 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 	<!-- Tailwind CDN with all features enabled -->
 	<script src="https://cdn.tailwindcss.com"></script>
 	<script>
+		// Configure Tailwind
 		tailwind.config = {
 			theme: {
-				extend: {
-					// Enable all arbitrary values
-				}
+				extend: {}
 			}
 		}
+
+		// Debug logging
+		console.log('[Iframe] Tailwind CDN loaded')
+		window.addEventListener('load', () => {
+			console.log('[Iframe] Page fully loaded')
+			console.log('[Iframe] Preview container:', document.getElementById('preview-container'))
+		})
+
+		// Error handling
+		window.addEventListener('error', (e) => {
+			console.error('[Iframe] Error:', e.error || e.message)
+		})
 	</script>
 	<style>
 		* {
@@ -115,6 +134,10 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 	<div id="preview-container">
 		${previewHTML}
 	</div>
+	<script>
+		// Log after DOM is ready
+		console.log('[Iframe] DOM loaded, container HTML:', document.getElementById('preview-container')?.innerHTML?.substring(0, 200))
+	</script>
 </body>
 </html>
 			`
@@ -125,6 +148,19 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 			iframeDoc.close()
 
 			console.log("[Step5] Iframe updated successfully")
+
+			// Wait for iframe to load, then check if Tailwind processed
+			setTimeout(() => {
+				const container = iframeDoc.getElementById("preview-container")
+				if (container) {
+					const firstDiv = container.querySelector("div")
+					if (firstDiv) {
+						const computedStyle = iframe.contentWindow?.getComputedStyle(firstDiv)
+						console.log("[Step5] First div computed width:", computedStyle?.width)
+						console.log("[Step5] First div classes:", firstDiv.className)
+					}
+				}
+			}, 1000)
 		} catch (error) {
 			console.error("[Step5] Error updating iframe:", error)
 		}
@@ -300,7 +336,7 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 									ref={iframeRef}
 									className="h-[900px] w-full border-0"
 									title="Template Preview"
-									sandbox="allow-same-origin"
+									sandbox="allow-same-origin allow-scripts"
 								/>
 							</div>
 						</div>
