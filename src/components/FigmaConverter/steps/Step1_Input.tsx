@@ -51,6 +51,9 @@ export default function Step1_Input({ onNext }: Step1Props) {
 			// Validate dimensions
 			validateDimensions(values.width, values.height)
 
+			// Convert file to base64 (on client side, before sending to server)
+			const screenshotBase64 = await fileToBase64(screenshot)
+
 			// Parse text styles if JSON
 			let textStyles: string | TextStyles = values.textStyles
 			try {
@@ -62,7 +65,7 @@ export default function Step1_Input({ onNext }: Step1Props) {
 			const figmaInput: FigmaInput = {
 				jsx: values.jsx,
 				textStyles,
-				screenshot,
+				screenshot: screenshotBase64, // Send as base64 string
 				dimensions: {
 					width: values.width,
 					height: values.height,
@@ -81,6 +84,19 @@ export default function Step1_Input({ onNext }: Step1Props) {
 		} finally {
 			setLoading(false)
 		}
+	}
+
+	// Helper function to convert File to base64 (client-side only)
+	const fileToBase64 = (file: File): Promise<string> => {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader()
+			reader.onloadend = () => {
+				const result = reader.result as string
+				resolve(result)
+			}
+			reader.onerror = reject
+			reader.readAsDataURL(file)
+		})
 	}
 
 	const handleScreenshotUpload = (file: File) => {

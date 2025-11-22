@@ -33,10 +33,7 @@ export async function convertFigmaToTailwind(input: FigmaInput): Promise<Convers
 								{
 									type: "image_url",
 									image_url: {
-										url:
-											typeof input.screenshot === "string"
-												? input.screenshot
-												: await fileToBase64(input.screenshot),
+										url: input.screenshot, // Already base64 from client
 									},
 								},
 							]
@@ -132,16 +129,4 @@ function parseAIResponse(content: string): ConversionResult {
 			{ content, error },
 		)
 	}
-}
-
-async function fileToBase64(file: File): Promise<string> {
-	return new Promise((resolve, reject) => {
-		const reader = new FileReader()
-		reader.onloadend = () => {
-			const result = reader.result as string
-			resolve(result)
-		}
-		reader.onerror = reject
-		reader.readAsDataURL(file)
-	})
 }
