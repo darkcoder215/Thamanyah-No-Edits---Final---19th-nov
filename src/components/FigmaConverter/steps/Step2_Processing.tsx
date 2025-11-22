@@ -11,7 +11,7 @@ import {
 	WarningOutlined,
 } from "@ant-design/icons"
 import { Alert, Button, Progress, Spin } from "antd"
-import { FigmaConverterError, errorMessages } from "@/utils/errorHandler"
+import { ErrorCode, FigmaConverterError, errorMessages } from "@/utils/errorHandler"
 
 interface Step2Props {
 	wizardData: WizardData
