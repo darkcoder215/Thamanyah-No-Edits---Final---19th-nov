@@ -27,11 +27,19 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 	const [form] = Form.useForm()
 	const [formData, setFormData] = useState<Record<string, unknown>>({})
 	const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+	const [iframeReady, setIframeReady] = useState(false)
 	const iframeRef = useRef<HTMLIFrameElement>(null)
 
 	const fields = wizardData.step3 || []
 	const jsx = wizardData.step2?.jsx || ""
 	const dimensions = wizardData.step2?.dimensions || { width: "595px", height: "842px" }
+
+	// Debug: Log what data we have
+	console.log("[Step5] Component mounted/updated")
+	console.log("[Step5] JSX available:", !!jsx)
+	console.log("[Step5] JSX length:", jsx.length)
+	console.log("[Step5] Fields count:", fields.length)
+	console.log("[Step5] Dimensions:", dimensions)
 
 	const handleFormChange = (changedValues: Record<string, unknown>) => {
 		setFormData((prev) => ({ ...prev, ...changedValues }))
@@ -57,9 +65,30 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 		}
 	}
 
+	// Handle iframe load
+	const handleIframeLoad = () => {
+		console.log("[Step5] Iframe loaded event fired")
+		setIframeReady(true)
+	}
+
 	// Update iframe content whenever formData or jsx changes
 	useEffect(() => {
-		if (!iframeRef.current) return
+		console.log(
+			"[Step5] useEffect triggered - iframeReady:",
+			iframeReady,
+			"jsx length:",
+			jsx.length,
+		)
+
+		if (!iframeReady) {
+			console.log("[Step5] Iframe not ready yet, skipping update")
+			return
+		}
+
+		if (!iframeRef.current) {
+			console.log("[Step5] iframeRef.current is null")
+			return
+		}
 
 		const iframe = iframeRef.current
 		const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document
@@ -164,7 +193,7 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 		} catch (error) {
 			console.error("[Step5] Error updating iframe:", error)
 		}
-	}, [jsx, formData, fields])
+	}, [jsx, formData, fields, iframeReady])
 
 	const handleDownloadPDF = async () => {
 		if (!iframeRef.current) {
@@ -331,14 +360,37 @@ export default function Step5_Preview({ wizardData, onNext, onPrev }: Step5Props
 						{/* Preview */}
 						<div>
 							<h3 className="mb-4 text-lg font-semibold">Preview</h3>
-							<div className="overflow-auto rounded border bg-gray-100">
-								<iframe
-									ref={iframeRef}
-									className="h-[900px] w-full border-0"
-									title="Template Preview"
-									sandbox="allow-same-origin allow-scripts"
+
+							{!jsx || jsx.trim().length === 0 ? (
+								<Alert
+									type="error"
+									message="No JSX Code Available"
+									description="The conversion step did not generate any JSX code. Please go back and run the conversion again."
+									showIcon
 								/>
-							</div>
+							) : (
+								<div className="overflow-auto rounded border bg-gray-100">
+									<iframe
+										ref={iframeRef}
+										onLoad={handleIframeLoad}
+										className="h-[900px] w-full border-0"
+										title="Template Preview"
+										sandbox="allow-same-origin allow-scripts"
+									/>
+									{!iframeReady && (
+										<div className="bg-opacity-75 absolute inset-0 flex items-center justify-center bg-white">
+											<div className="text-center">
+												<div className="mb-2 text-lg">
+													Loading preview...
+												</div>
+												<div className="text-sm text-gray-500">
+													Initializing Tailwind CSS
+												</div>
+											</div>
+										</div>
+									)}
+								</div>
+							)}
 						</div>
 					</div>
 
