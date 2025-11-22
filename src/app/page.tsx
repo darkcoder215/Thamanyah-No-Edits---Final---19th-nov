@@ -1,81 +1,68 @@
-"use client"
-
 import Link from "next/link"
-import { Typography, Card, Row, Col } from "antd"
-import {
-	FileTextOutlined,
-	ToolOutlined,
-	CalculatorOutlined,
-	TeamOutlined,
-} from "@ant-design/icons"
-import { useAuth } from "@/lib/context/AuthContext"
-import { getGreetingEmoji } from "@/utils/helpers"
-
-const { Title } = Typography
-
-const tools = [
-	{
-		title: "Job Offers",
-		description: "Create employment offer letters",
-		href: "/offer",
-		icon: <FileTextOutlined style={{ fontSize: "2rem" }} />,
-	},
-	{
-		title: "Salary Calculator",
-		description: "Calculate salary breakdowns",
-		href: "/salary-calculator",
-		icon: <CalculatorOutlined style={{ fontSize: "2rem" }} />,
-	},
-	{
-		title: "Manage Advertisers",
-		description: "Admin advertiser management",
-		href: "/manage-advertisers",
-		icon: <TeamOutlined style={{ fontSize: "2rem" }} />,
-	},
-	{
-		title: "Figma Converter",
-		description: "Convert Figma designs to PDF templates",
-		href: "/figma-converter",
-		icon: <ToolOutlined style={{ fontSize: "2rem" }} />,
-		new: true,
-	},
-]
+import { GithubOutlined, ToolOutlined } from "@ant-design/icons"
+import { Button } from "antd"
 
 export default function Home() {
-	const { user } = useAuth()
-
 	return (
-		<main className="container mx-auto min-h-screen py-12">
-			<div className="mb-12 text-center">
-				<Title>أهلًا {user?.displayName?.split(" ")[0]} {getGreetingEmoji()}</Title>
-				<p className="text-lg text-gray-600">Choose a tool to get started</p>
-			</div>
+		<main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+			<div className="max-w-4xl text-center">
+				<div className="mb-8 flex justify-center">
+					<ToolOutlined className="text-8xl text-blue-500" />
+				</div>
 
-			<Row gutter={[24, 24]} className="max-w-6xl mx-auto">
-				{tools.map((tool) => (
-					<Col xs={24} sm={12} lg={6} key={tool.href}>
-						<Link href={tool.href}>
-							<Card
-								hoverable
-								className="h-full text-center transition-all hover:shadow-lg"
-							>
-								<div className="mb-4 flex justify-center text-blue-500">
-									{tool.icon}
-								</div>
-								<h3 className="mb-2 text-lg font-semibold">
-									{tool.title}
-									{tool.new && (
-										<span className="ml-2 rounded bg-green-500 px-2 py-0.5 text-xs text-white">
-											NEW
-										</span>
-									)}
-								</h3>
-								<p className="text-sm text-gray-600">{tool.description}</p>
-							</Card>
-						</Link>
-					</Col>
-				))}
-			</Row>
+				<h1 className="mb-4 text-6xl font-bold text-gray-900">Figma Template Converter</h1>
+
+				<p className="mb-8 text-xl text-gray-600">
+					Transform your Figma designs into fillable PDF templates with AI-powered
+					conversion using Claude Sonnet 4.5
+				</p>
+
+				<div className="mb-12 flex justify-center gap-4">
+					<Link href="/figma-converter">
+						<Button type="primary" size="large" icon={<ToolOutlined />}>
+							Launch Converter
+						</Button>
+					</Link>
+					<Button
+						size="large"
+						icon={<GithubOutlined />}
+						href="https://github.com"
+						target="_blank"
+					>
+						View on GitHub
+					</Button>
+				</div>
+
+				<div className="grid grid-cols-1 gap-6 text-left md:grid-cols-3">
+					<div className="rounded-lg bg-white p-6 shadow-md">
+						<h3 className="mb-2 text-lg font-semibold text-gray-900">
+							🎨 AI-Powered Conversion
+						</h3>
+						<p className="text-gray-600">
+							Upload Figma JSX and screenshots - Claude Sonnet 4.5 converts them to
+							pixel-perfect Tailwind CSS
+						</p>
+					</div>
+
+					<div className="rounded-lg bg-white p-6 shadow-md">
+						<h3 className="mb-2 text-lg font-semibold text-gray-900">
+							📝 Auto Field Detection
+						</h3>
+						<p className="text-gray-600">
+							Automatically identifies fillable fields in your design and maps them to
+							form inputs
+						</p>
+					</div>
+
+					<div className="rounded-lg bg-white p-6 shadow-md">
+						<h3 className="mb-2 text-lg font-semibold text-gray-900">📄 PDF Export</h3>
+						<p className="text-gray-600">
+							Generate professional PDFs directly from your browser using native print
+							capabilities
+						</p>
+					</div>
+				</div>
+			</div>
 		</main>
 	)
 }
